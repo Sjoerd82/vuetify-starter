@@ -1,0 +1,251 @@
+<template>
+    <v-card>
+        <template #title>
+            <div class="d-flex justify-space-between">
+                <div>WebRTC (peer.js)</div>
+                <v-chip label v-if="isConnected" color="success">Connected</v-chip>
+                <v-chip label v-else color="error">Disconnected</v-chip>
+            </div>
+        </template>
+        <v-card-text>
+            <div class="mb-2 text-caption text-grey">
+                This is a demo of simple two-way communication.
+                Peerjs only includes basic connectivity.
+            </div>
+            <div>
+                <v-text-field
+                    label="Peer ID"
+                    append-inner-icon="mdi-content-copy"
+                    v-model="peerId"
+                    @click:append-inner="copyToClipboard()"
+                />
+            </div>
+            <div class="mb-2 text-caption text-grey">
+                {{ peerStatus }}
+            </div>
+
+            <div>
+                Received: {{ arrReceived }}
+            </div>
+
+            <div v-if="!isConnected">
+                <v-text-field
+                    label="Connect to:"
+                    hint="Paste peer ID of the client you want to connect to here"
+                    persistent-hint
+                    v-model="destPeerId"
+                />
+                <v-btn
+                    color="primary"
+                    @click="join()"
+                >
+                    Join
+                </v-btn>
+            </div>
+            <v-textarea
+                v-model="message"
+            />
+            <v-btn
+                color="primary"
+                @click="sendMessage()"
+            >
+                Send
+            </v-btn>
+
+        </v-card-text>
+    </v-card>
+</template>
+
+<script setup lang="ts">
+    import { ref, onMounted } from 'vue'
+    import Peer from 'peerjs'
+    import type { Ref } from 'vue'
+    import type { DataConnection } from 'peerjs'
+
+    let peerId = ref("")
+    const destPeerId: Ref<string | null> = ref(null)
+
+    let message = ref("")
+    let peerStatus = ref("")
+    //let arrReceived : string[] = []
+    let arrReceived: Ref<string[]> = ref([])
+
+    let peer : Peer // = new Peer()
+    let conn : DataConnection
+    let isConnected = ref(false)
+
+    onMounted(() => {
+        initializePeer()
+    })
+
+    // -------------
+    function copyToClipboard() {
+        navigator.clipboard.writeText(peerId.value)
+    }
+
+    function initializePeer() {
+
+        peer = new Peer()
+        //peer = new Peer(null, {
+        //                debug: 2
+        //            });
+
+        // Get PeerId
+        peer.on('open', function(id) {
+            // Workaround for peer.reconnect deleting previous id
+            if (peer.id === null) {
+                console.log('[PEER] Received null id from peer open')
+                peer.id = peerId.value // id is set to READONLY!
+            } else {
+                peerId.value = peer.id
+                console.log('[PEER] id=',id)
+            }
+            //peerId.value = id
+        })
+
+        // Disallow incoming connections
+        //peer.on('connection', function(c) {
+        //    c.on('open', function() {
+        //        c.send("Sender does not accept incoming connections")
+        //        setTimeout(function() { c.close(); }, 500)
+        //    })
+        //})
+        peer.on('connection', function (c) {
+            // Allow only a single connection
+            //if (conn && conn.open) {
+            //    c.on('open', function() {
+            //        c.send("Already connected to another client");
+            //        setTimeout(function() { c.close(); }, 500);
+            //    });
+            //    return;
+            //}
+
+            conn = c;
+            console.log("Connected to: " + conn.peer);
+            peerStatus.value = "Connected";
+            ready();
+        });
+
+        // Reconnect if disconnected
+        peer.on('disconnected', function () {
+            peerStatus.value = "Connection lost. Please reconnect"
+            console.log('[PEER] Connection lost. Please reconnect')
+
+            // Workaround for peer.reconnect deleting previous id
+            peer.id = peerId.value
+            peer._lastServerId = peerId.value
+            peer.reconnect()
+        })
+
+        // Close
+        peer.on('close', function() {
+            conn = null
+            peerStatus.value = "Connection destroyed. Please refresh"
+            console.log('[PEER] Connection destroyed')
+        })
+
+        // Error?
+        peer.on('error', function (err) {
+            console.log('[PEER] ',err)
+            alert('' + err)
+        })
+    }
+
+    function join() {
+        // Close old connection
+        if (conn) {
+            console.log('[PEER] closing old connection')
+            conn.close();
+        }
+
+        // Create connection to destination peer specified in the input field
+        if (destPeerId.value) {
+            console.log('[PEER] connecting to',destPeerId.value)
+            conn = peer.connect(destPeerId.value, {
+                reliable: true
+            })
+        } else {
+            console.log('[PEER] no destination')
+            return
+        }
+
+        conn.on('open', function () {
+            isConnected.value = true
+            peerStatus.value = "Connected to: " + conn.peer;
+            console.log("[PEER] Connected to: " + conn.peer);
+
+            // Check URL params for comamnds that should be sent immediately
+            //var command = getUrlParam("command");
+            //if (command)
+            //    conn.send(command);
+        })
+        // Handle incoming data (messages only since this is the signal sender)
+        conn.on('data', function (data) {
+            //addMessage("<span class=\"peerMsg\">Peer:</span> " + data);
+            console.log('[PEER] receiving',data)
+            arrReceived.value.push(data)
+        })
+        conn.on('close', function () {
+            isConnected.value = false
+            peerStatus.value = "Connection closed";
+        })
+    }
+
+    function ready() {
+        
+        isConnected.value = true
+
+        conn.on('data', function (data) {
+            console.log("Data recieved",data);
+            arrReceived.value.push(data)
+            /*
+            var cueString = "<span class=\"cueMsg\">Cue: </span>";
+                        switch (data) {
+                            case 'Go':
+                                go();
+                                addMessage(cueString + data);
+                                break;
+                            case 'Fade':
+                                fade();
+                                addMessage(cueString + data);
+                                break;
+                            case 'Off':
+                                off();
+                                addMessage(cueString + data);
+                                break;
+                            case 'Reset':
+                                reset();
+                                addMessage(cueString + data);
+                                break;
+                            default:
+                                addMessage("<span class=\"peerMsg\">Peer: </span>" + data);
+                                break;
+                        };*/
+        });
+        conn.on('close', function () {
+            isConnected.value = false
+            peerStatus.value = "Connection reset<br>Awaiting connection...";
+            conn = null;
+        })
+    }
+    
+    function connectToPeer() {
+        conn = peer.connect(destPeerId.value);
+        console.log('[PEER] Connecting',conn)
+
+        // Receive messages
+        conn.on('data', function(data) {
+            console.log('[PEER] Received', data);
+        });
+    }
+
+    function sendMessage() {
+        console.log('[PEER] sending',message.value)
+        if (conn && conn.open) {
+            conn.send(message.value)
+        } else {
+            console.log('[PEER] Connection is closed');
+        }
+    }
+
+</script>

@@ -1,0 +1,1 @@
+declare module '@vexna/v-theme-select'

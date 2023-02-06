@@ -1,0 +1,27 @@
+button:
+  reload: Reload
+  close: Close
+  login: Inloggen
+  logout: Uitloggen
+site:
+  language: Taal
+auth:
+  logged-in-as: Je bent ingelogd als {name}.
+  authenticated: Ingelogd
+  not-authenticated: Niet ingelogd
+reloadPrompt:
+  offlineReady: Gereed voor offline gebruik
+  refreshNeeded: Nieuw content beschikbaar, klik de @:button.reload knop om te verversen
+portrait-dropper:
+  uploading: Uploaden...
+  drop-here: Sleep je afbeelding hier naartoe
+  or: of
+  button: kies een bestand
+theme:
+  select-theme: Kies kleurstelling
+  light: Licht
+  dark: Donker
+  LightTheme: Licht
+  DarkTheme: Donker
+  LightGold: Licht goud
+  DarkGold: Donker goud

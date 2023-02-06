@@ -1,0 +1,27 @@
+button:
+  reload: Reload
+  close: Close
+  login: Log in
+  logout: Log off
+site:
+  language: Language
+auth:
+  logged-in-as: Logged in as {name}.
+  authenticated: Logged in
+  not-authenticated: Not logged in
+reloadPrompt:
+  offlineReady: App ready to work offline
+  refreshNeeded: New content available, click on @:button.reload button to update.
+portrait-dropper:
+  uploading: Uploading...
+  drop-here: Drag and Drop your picture here
+  or: or
+  button: select file
+theme:
+  select-theme: Select theme
+  light: Light
+  dark: Dark
+  LightTheme: Light
+  DarkTheme: Dark
+  LightGold: Light gold
+  DarkGold: Dark gold
